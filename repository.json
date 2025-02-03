@@ -1,0 +1,8 @@
+{
+  "name": "Ramses II MQTT Add-on",
+  "url": "https://github.com/kooistramj/homeassistant-ramses",
+  "maintainer": "kooistramj",
+  "source": "https://github.com/kooistramj/homeassistant-ramses",
+  "slug": "ramses_mqtt",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"]
+}
