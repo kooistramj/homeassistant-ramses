@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-MQTT_BROKER = "192.168.1.44"
+MQTT_BROKER = "core-mosquitto"
 MQTT_PORT = 1883
 MQTT_USERNAME = "mqtt"
 MQTT_PASSWORD = "mqtt"
