@@ -1,18 +1,20 @@
+import eventlet
+eventlet.monkey_patch()  # Dit MOET als eerste gebeuren!
+
 import paho.mqtt.client as mqtt
 import json
 import os
-import eventlet
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-eventlet.monkey_patch()
-
+# Flask Applicatie
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-MQTT_BROKER = "core-mosquitto"
+# MQTT Instellingen
+MQTT_BROKER = "192.168.1.44"
 MQTT_PORT = 1883
 MQTT_USERNAME = "mqtt"
 MQTT_PASSWORD = "mqtt"
@@ -21,6 +23,7 @@ MQTT_TOPIC = "RAMSES/GATEWAY/#"
 received_messages = []
 APPROVED_DEVICES_FILE = "/opt/ramses_mqtt/approved_devices.json"
 
+# **Laad goedgekeurde apparaten**
 approved_devices = {}
 if os.path.exists(APPROVED_DEVICES_FILE):
     try:
@@ -30,6 +33,7 @@ if os.path.exists(APPROVED_DEVICES_FILE):
         approved_devices = {}
 
 def save_approved_devices():
+    """Sla goedgekeurde apparaten op binnen een Flask-appcontext."""
     with app.app_context():
         try:
             with open(APPROVED_DEVICES_FILE, "w") as file:
@@ -37,6 +41,7 @@ def save_approved_devices():
         except Exception as e:
             print(f"[ERROR] Kan JSON-bestand niet opslaan: {e}")
 
+# **MQTT Callbacks**
 def on_connect(client, userdata, flags, reason_code, properties=None):
     print(f"[MQTT] Connected to MQTT Broker with code {reason_code}")
     if reason_code == 0:
@@ -45,21 +50,24 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
         print(f"[ERROR] Failed to connect: {reason_code}")
 
 def on_message(client, userdata, msg):
+    """Berichten ontvangen via MQTT en doorsturen via WebSocket."""
     global received_messages
     try:
         payload = json.loads(msg.payload.decode())
         print(f"[MQTT] Ontvangen bericht: {payload}")
         received_messages.append(payload)
 
+        # Houd maximaal 50 berichten
         if len(received_messages) > 50:
             received_messages = received_messages[-50:]
 
-        with app.app_context():
-            socketio.emit("mqtt_message", payload)
+        # Stuur het bericht via WebSocket
+        socketio.emit("mqtt_message", payload)
 
     except Exception as e:
         print(f"[ERROR] Algemene fout bij verwerken van MQTT-bericht: {e}")
 
+# **MQTT Client Instellen**
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
 mqtt_client.on_connect = on_connect
@@ -69,6 +77,7 @@ print("[MQTT] Connecting to MQTT Broker...")
 mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
 mqtt_client.loop_start()
 
+# **Flask API Routes**
 @app.route("/messages")
 def get_messages():
     return jsonify(received_messages)
@@ -102,6 +111,7 @@ def delete_approved_device(device_id):
 
     return jsonify({"status": "error", "message": "Apparaat niet gevonden"}), 404
 
+# **WebSocket Events**
 @socketio.on("connect")
 def handle_connect():
     print("[WebSocket] Client verbonden")
