@@ -1,9 +1,9 @@
 {
   "name": "Ramses II MQTT Monitor",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "slug": "ramses_mqtt",
   "description": "Monitor voor Ramses II MQTT berichten in Home Assistant",
-  "url": "https://github.com/jouwgithub/homeassistant-ramses",
+  "url": "https://github.com/kooistramj/homeassistant-ramses",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
   "init": false,
   "ingress": true,
