@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ramses II MQTT Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="main.js" defer></script>
+    <style>
+        :root {
+            --background: #f4f4f4;
+            --text-color: #000;
+            --table-background: white;
+            --table-header: #007BFF;
+            --button-bg: #ddd;
+        }
+
+        body.dark-mode {
+            --background: #1e1e1e;
+            --text-color: #fff;
+            --table-background: #2c2c2c;
+            --table-header: #0056b3;
+            --button-bg: #444;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: var(--background);
+            color: var(--text-color);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: var(--button-bg);
+            margin: 0 5px;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .tab.active {
+            background: var(--table-header);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 10px;
+            background: var(--table-background);
+            border-radius: 5px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: var(--table-background);
+            color: var(--text-color);
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: var(--table-header);
+            color: white;
+        }
+
+        .rename-btn {
+            background-color: orange;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .delete-btn {
+            background-color: red;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .approve-btn {
+            background-color: green;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .filter-container input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            flex-grow: 1;
+        }
+
+        .add-device-container {
+            margin-bottom: 10px;
+        }
+
+        .add-device-container input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+
+        .add-btn {
+            background-color: blue;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .approved-device {
+            background-color: #7df54c !important;
+            font-weight: bold;
+        }
+
+        .tooltip-box {
+            position: absolute;
+            background: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+            display: none;
+        }
+
+        .dark-mode-toggle {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ramses II MQTT Monitor</h1>
+
+    <div class="dark-mode-toggle">
+        <label>
+            <input type="checkbox" id="darkModeToggle">
+            Donkere modus
+        </label>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('approved')">Mijn Apparaten</div>
+        <div class="tab" onclick="showTab('debug')">Debug</div>
+    </div>
+
+    <div id="approved" class="tab-content active">
+        <h2>Mijn Apparaten</h2>
+
+        <div class="add-device-container">
+            <input type="text" id="deviceNameInput" placeholder="Apparaatnaam">
+            <input type="text" id="deviceIdInput" placeholder="Apparaat ID">
+            <button class="add-btn" onclick="addDevice()">Toevoegen</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Naam</th>
+                    <th>ID</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody id="approvedDevicesTable"></tbody>
+        </table>
+    </div>
+
+    <div id="debug" class="tab-content">
+        <h2>Debug</h2>
+
+        <div class="filter-container">
+            <input type="text" id="filterVan" placeholder="Filter op Van..." oninput="filterDebugMessages()">
+            <input type="text" id="filterNaar" placeholder="Filter op Naar..." oninput="filterDebugMessages()">
+            <input type="text" id="filterCode" placeholder="Filter op Opdrachtcode..." oninput="filterDebugMessages()">
+            <label>
+                <input type="checkbox" id="filterApprovedOnly" onchange="filterDebugMessages()">
+                Alleen goedgekeurde apparaten tonen
+            </label>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Lengte</th>
+                    <th>Type</th>
+                    <th>RQ/RP/W</th>
+                    <th>Van</th>
+                    <th>Naar</th>
+                    <th>Ref</th>
+                    <th>Code</th>
+                    <th>Grootte</th>
+                    <th>Payload</th>
+                    <th>Tijd</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody id="debugTable"></tbody>
+        </table>
+    </div>
+
+    <div id="tooltip" class="tooltip-box"></div>
+
+</body>
+</html>
