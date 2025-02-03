@@ -1,0 +1,16 @@
+{
+  "name": "Ramses II MQTT Monitor",
+  "version": "1.0.0",
+  "slug": "ramses_mqtt",
+  "description": "Monitor voor Ramses II MQTT berichten in Home Assistant",
+  "url": "https://github.com/jouwgithub/homeassistant-ramses",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "init": false,
+  "ingress": true,
+  "ingress_port": 8080,
+  "panel_icon": "mdi:monitor-dashboard",
+  "map": ["config", "share"],
+  "options": {},
+  "schema": {},
+  "startup": "application"
+}
